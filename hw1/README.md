@@ -4,7 +4,10 @@
 
 ## Запуск
 
+Из корня репозитория:
+
 ```bash
+cd hw1
 docker compose up --build -d
 ```
 
@@ -28,7 +31,9 @@ docker compose down
 
 ## Архитектура
 
-C4 Container-диаграмма: [`docs/c4-container.md`](docs/c4-container.md).
+C4 Container-диаграмма:
+
+![C4 Container-диаграмма](docs/c4-container.svg)
 
 | Домен | Сервис | Ответственность | Данные |
 |---|---|---|---|

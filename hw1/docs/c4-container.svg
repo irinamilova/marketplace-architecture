@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1250" viewBox="0 0 1800 1250">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#374151"/>
+    </marker>
+    <style>
+      text { font-family: Arial, sans-serif; letter-spacing: 0; }
+      .title { font-size: 30px; font-weight: 700; fill: #111827; }
+      .boundary-title { font-size: 22px; font-weight: 700; fill: #374151; }
+      .node-title { font-size: 19px; font-weight: 700; fill: #ffffff; }
+      .node-type { font-size: 13px; fill: #e5effa; }
+      .node-desc { font-size: 15px; fill: #ffffff; }
+      .db-title { font-size: 18px; font-weight: 700; fill: #ffffff; }
+      .db-type { font-size: 13px; fill: #e5effa; }
+      .person-title { font-size: 19px; font-weight: 700; fill: #ffffff; }
+      .person-type { font-size: 13px; fill: #dbeafe; }
+      .edge { fill: none; stroke: #374151; stroke-width: 2.5; marker-end: url(#arrow); }
+      .async { stroke-dasharray: 9 7; }
+      .owns { fill: none; stroke: #6b7280; stroke-width: 2; }
+      .edge-label { font-size: 14px; font-weight: 600; fill: #374151; paint-order: stroke; stroke: #ffffff; stroke-width: 7px; stroke-linejoin: round; }
+      .legend { font-size: 14px; fill: #374151; }
+    </style>
+  </defs>
+
+  <rect width="1800" height="1250" fill="#ffffff"/>
+  <text x="900" y="38" text-anchor="middle" class="title">C4 Container Diagram: Marketplace</text>
+
+  <rect x="220" y="65" width="260" height="75" rx="10" fill="#08427b"/>
+  <text x="350" y="94" text-anchor="middle" class="person-title">Покупатель</text>
+  <text x="350" y="119" text-anchor="middle" class="person-type">[Person]</text>
+
+  <rect x="580" y="65" width="260" height="75" rx="10" fill="#08427b"/>
+  <text x="710" y="94" text-anchor="middle" class="person-title">Продавец</text>
+  <text x="710" y="119" text-anchor="middle" class="person-type">[Person]</text>
+
+  <rect x="40" y="165" width="1720" height="1040" rx="8" fill="#f8fbff" stroke="#6b7280" stroke-width="2" stroke-dasharray="10 8"/>
+  <text x="70" y="198" class="boundary-title">Маркетплейс [System]</text>
+
+  <path d="M350 140 V185 H820 V220" class="edge"/>
+  <path d="M710 140 V185 H980 V220" class="edge"/>
+  <text x="500" y="176" class="edge-label">HTTPS</text>
+  <text x="835" y="176" class="edge-label">HTTPS</text>
+
+  <rect x="760" y="220" width="280" height="90" rx="8" fill="#438dd5" stroke="#2d6fa8" stroke-width="2"/>
+  <text x="900" y="248" text-anchor="middle" class="node-title">Web / Mobile</text>
+  <text x="900" y="271" text-anchor="middle" class="node-type">[Container: Web, iOS, Android]</text>
+  <text x="900" y="294" text-anchor="middle" class="node-desc">Интерфейс маркетплейса</text>
+
+  <line x1="1210" y1="225" x2="1280" y2="225" class="edge"/>
+  <text x="1295" y="231" class="legend">синхронно, HTTP</text>
+  <line x1="1210" y1="260" x2="1280" y2="260" class="edge async"/>
+  <text x="1295" y="266" class="legend">асинхронно, событие</text>
+
+  <path d="M790 310 V350 H230 V400" class="edge"/>
+  <path d="M865 310 V365 H630 V400" class="edge"/>
+  <path d="M935 310 V365 H1030 V400" class="edge"/>
+  <path d="M1010 310 V350 H1430 V400" class="edge"/>
+
+  <rect x="100" y="400" width="260" height="100" rx="8" fill="#438dd5" stroke="#2d6fa8" stroke-width="2"/>
+  <text x="230" y="429" text-anchor="middle" class="node-title">User Service</text>
+  <text x="230" y="453" text-anchor="middle" class="node-type">[Container: Service]</text>
+  <text x="230" y="478" text-anchor="middle" class="node-desc">Пользователи и профили</text>
+
+  <rect x="500" y="400" width="260" height="100" rx="8" fill="#438dd5" stroke="#2d6fa8" stroke-width="2"/>
+  <text x="630" y="429" text-anchor="middle" class="node-title">Feed Service</text>
+  <text x="630" y="453" text-anchor="middle" class="node-type">[Container: Service]</text>
+  <text x="630" y="478" text-anchor="middle" class="node-desc">Персональная лента</text>
+
+  <rect x="900" y="400" width="260" height="100" rx="8" fill="#438dd5" stroke="#2d6fa8" stroke-width="2"/>
+  <text x="1030" y="429" text-anchor="middle" class="node-title">Catalog Service</text>
+  <text x="1030" y="453" text-anchor="middle" class="node-type">[Container: Python]</text>
+  <text x="1030" y="478" text-anchor="middle" class="node-desc">Товары, цены и остатки</text>
+
+  <rect x="1300" y="400" width="260" height="100" rx="8" fill="#438dd5" stroke="#2d6fa8" stroke-width="2"/>
+  <text x="1430" y="429" text-anchor="middle" class="node-title">Order Service</text>
+  <text x="1430" y="453" text-anchor="middle" class="node-type">[Container: Service]</text>
+  <text x="1430" y="478" text-anchor="middle" class="node-desc">Заказы и статусы</text>
+
+  <path d="M1300 450 H1160" class="edge"/>
+  <text x="1230" y="438" text-anchor="middle" class="edge-label">товар</text>
+
+  <path d="M230 500 V550" class="owns"/>
+  <path d="M630 500 V550" class="owns"/>
+  <path d="M1030 500 V550" class="owns"/>
+  <path d="M1430 500 V550" class="owns"/>
+
+  <g>
+    <rect x="110" y="560" width="240" height="80" rx="35" fill="#438dd5" stroke="#2d6fa8" stroke-width="2"/>
+    <ellipse cx="230" cy="570" rx="119" ry="18" fill="#5a9dde" stroke="#2d6fa8" stroke-width="2"/>
+    <text x="230" y="602" text-anchor="middle" class="db-title">User DB</text>
+    <text x="230" y="625" text-anchor="middle" class="db-type">[Container: PostgreSQL]</text>
+  </g>
+  <g>
+    <rect x="510" y="560" width="240" height="80" rx="35" fill="#438dd5" stroke="#2d6fa8" stroke-width="2"/>
+    <ellipse cx="630" cy="570" rx="119" ry="18" fill="#5a9dde" stroke="#2d6fa8" stroke-width="2"/>
+    <text x="630" y="602" text-anchor="middle" class="db-title">Feed DB</text>
+    <text x="630" y="625" text-anchor="middle" class="db-type">[Container: PostgreSQL / Redis]</text>
+  </g>
+  <g>
+    <rect x="910" y="560" width="240" height="80" rx="35" fill="#438dd5" stroke="#2d6fa8" stroke-width="2"/>
+    <ellipse cx="1030" cy="570" rx="119" ry="18" fill="#5a9dde" stroke="#2d6fa8" stroke-width="2"/>
+    <text x="1030" y="602" text-anchor="middle" class="db-title">Catalog DB</text>
+    <text x="1030" y="625" text-anchor="middle" class="db-type">[Container: PostgreSQL]</text>
+  </g>
+  <g>
+    <rect x="1310" y="560" width="240" height="80" rx="35" fill="#438dd5" stroke="#2d6fa8" stroke-width="2"/>
+    <ellipse cx="1430" cy="570" rx="119" ry="18" fill="#5a9dde" stroke="#2d6fa8" stroke-width="2"/>
+    <text x="1430" y="602" text-anchor="middle" class="db-title">Order DB</text>
+    <text x="1430" y="625" text-anchor="middle" class="db-type">[Container: PostgreSQL]</text>
+  </g>
+
+  <path d="M1430 500 V720 H830 V790" class="edge"/>
+  <text x="1090" y="708" text-anchor="middle" class="edge-label">создаёт платёж</text>
+
+  <rect x="700" y="790" width="260" height="100" rx="8" fill="#438dd5" stroke="#2d6fa8" stroke-width="2"/>
+  <text x="830" y="819" text-anchor="middle" class="node-title">Payment Service</text>
+  <text x="830" y="843" text-anchor="middle" class="node-type">[Container: Service]</text>
+  <text x="830" y="868" text-anchor="middle" class="node-desc">Платежи</text>
+
+  <rect x="1080" y="790" width="260" height="100" rx="8" fill="#438dd5" stroke="#2d6fa8" stroke-width="2"/>
+  <text x="1210" y="819" text-anchor="middle" class="node-title">Notification Service</text>
+  <text x="1210" y="843" text-anchor="middle" class="node-type">[Container: Service]</text>
+  <text x="1210" y="868" text-anchor="middle" class="node-desc">Уведомления</text>
+
+  <rect x="1450" y="790" width="250" height="100" rx="45" fill="#438dd5" stroke="#2d6fa8" stroke-width="2"/>
+  <text x="1575" y="819" text-anchor="middle" class="node-title">Message Broker</text>
+  <text x="1575" y="843" text-anchor="middle" class="node-type">[Container: Message broker]</text>
+  <text x="1575" y="868" text-anchor="middle" class="node-desc">Доменные события</text>
+
+  <path d="M830 890 V950" class="owns"/>
+  <path d="M1210 890 V950" class="owns"/>
+
+  <g>
+    <rect x="710" y="960" width="240" height="80" rx="35" fill="#438dd5" stroke="#2d6fa8" stroke-width="2"/>
+    <ellipse cx="830" cy="970" rx="119" ry="18" fill="#5a9dde" stroke="#2d6fa8" stroke-width="2"/>
+    <text x="830" y="1002" text-anchor="middle" class="db-title">Payment DB</text>
+    <text x="830" y="1025" text-anchor="middle" class="db-type">[Container: PostgreSQL]</text>
+  </g>
+  <g>
+    <rect x="1090" y="960" width="240" height="80" rx="35" fill="#438dd5" stroke="#2d6fa8" stroke-width="2"/>
+    <ellipse cx="1210" cy="970" rx="119" ry="18" fill="#5a9dde" stroke="#2d6fa8" stroke-width="2"/>
+    <text x="1210" y="1002" text-anchor="middle" class="db-title">Notification DB</text>
+    <text x="1210" y="1025" text-anchor="middle" class="db-type">[Container: PostgreSQL]</text>
+  </g>
+
+  <path d="M1160 480 H1240 V690 H1575 V790" class="edge async"/>
+  <path d="M1560 470 H1660 V790" class="edge async"/>
+  <path d="M830 790 V750 H1575 V790" class="edge async"/>
+
+  <path d="M1510 790 V680 H630 V500" class="edge async"/>
+  <path d="M1620 790 V720 H1700 V450 H1560" class="edge async"/>
+  <path d="M1450 865 H1340" class="edge async"/>
+</svg>
