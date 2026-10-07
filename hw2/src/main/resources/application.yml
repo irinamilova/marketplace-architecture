@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/marketplace}
+    username: ${DB_USERNAME:marketplace}
+    password: ${DB_PASSWORD:marketplace}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  jackson:
+    default-property-inclusion: non_null
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:local-development-secret-key-with-at-least-32-bytes}
+    access-minutes: 20
+    refresh-days: 14
+  order-limit-minutes: ${ORDER_LIMIT_MINUTES:1}
+
+logging:
+  pattern:
+    console: "%msg%n"
