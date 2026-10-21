@@ -1,11 +1,10 @@
-FROM maven:3.9.11-eclipse-temurin-21 AS build
-WORKDIR /workspace
-COPY pom.xml .
-COPY src ./src
-RUN mvn -q clean package -DskipTests
-
-FROM eclipse-temurin:21-jre
+FROM python:3.13-slim
 WORKDIR /app
-COPY --from=build /workspace/target/marketplace-api-1.0.0.jar app.jar
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY scripts ./scripts
+COPY src ./src
+RUN python scripts/generate.py
+ENV PYTHONPATH=/app/src
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--no-access-log"]

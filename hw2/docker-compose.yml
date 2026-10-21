@@ -7,8 +7,6 @@ services:
       POSTGRES_DB: marketplace
       POSTGRES_USER: marketplace
       POSTGRES_PASSWORD: marketplace
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U marketplace -d marketplace"]
       interval: 3s
@@ -17,20 +15,26 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
+  flyway:
+    image: flyway/flyway:11-alpine
+    command: -url=jdbc:postgresql://db:5432/marketplace -user=marketplace -password=marketplace -locations=filesystem:/flyway/sql migrate
+    volumes:
+      - ./src/main/resources/db/migration:/flyway/sql:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
   app:
     build: .
     environment:
-      DB_URL: jdbc:postgresql://db:5432/marketplace
-      DB_USERNAME: marketplace
-      DB_PASSWORD: marketplace
+      DB_URL: postgresql+psycopg://marketplace:marketplace@db:5432/marketplace
       JWT_SECRET: local-development-secret-key-with-at-least-32-bytes
       ORDER_LIMIT_MINUTES: 1
     ports:
       - "8080:8080"
     depends_on:
-      db:
-        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
 
 volumes:
   postgres-data:
-

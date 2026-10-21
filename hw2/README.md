@@ -1,8 +1,6 @@
 # Marketplace API
 
-Сервис маркетплейса на Spring Boot с контрактным подходом. API поддерживает товары, заказы, промокоды, JWT-авторизацию и роли `USER`, `SELLER`, `ADMIN`.
-
-OpenAPI-контракт находится в `src/main/resources/openapi/marketplace.yaml`. Интерфейсы контроллеров и модели генерируются из него во время сборки. Данные хранятся в PostgreSQL, схема создаётся миграцией Flyway.
+Сервис маркетплейса на Python и FastAPI. OpenAPI-контракт находится в `src/main/resources/openapi/marketplace.yaml`. Pydantic-модели и роутеры генерируются из него при сборке. Данные хранятся в PostgreSQL, миграции выполняет Flyway.
 
 ## Запуск
 
@@ -23,10 +21,10 @@ docker compose down
 ## Кодогенерация
 
 ```bash
-docker run --rm -v "$PWD:/workspace" -w /workspace maven:3.9.11-eclipse-temurin-21 mvn generate-sources
+docker run --rm -v "$PWD:/workspace" -w /workspace python:3.13-slim sh -c "pip install PyYAML==6.0.3 && python scripts/generate.py"
 ```
 
-Сгенерированный код находится в `target/generated-sources/openapi` и не добавляется в Git.
+Сгенерированный код находится в `src/app/generated` и не добавляется в Git.
 
 ## Проверка базы
 

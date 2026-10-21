@@ -1,5 +1,5 @@
-target/
-.idea/
-*.iml
+src/app/generated/
+__pycache__/
+*.pyc
+.venv/
 .DS_Store
-
