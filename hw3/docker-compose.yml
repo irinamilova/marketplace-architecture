@@ -1,0 +1,143 @@
+name: flight-booking-hw3
+x-service: &service
+  build: .
+  restart: unless-stopped
+x-sentinel: &sentinel
+  image: redis:7.4-alpine
+  entrypoint: [sh, /etc/redis/sentinel.sh]
+  volumes: [./redis/sentinel.sh:/etc/redis/sentinel.sh:ro]
+  depends_on:
+    redis-master: {condition: service_healthy}
+    redis-replica: {condition: service_healthy}
+  restart: unless-stopped
+  healthcheck:
+    test: [CMD, redis-cli, -p, '26379', ping]
+    interval: 3s
+    timeout: 2s
+    retries: 20
+services:
+  flight-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: flights
+      POSTGRES_USER: flight
+      POSTGRES_PASSWORD: ${FLIGHT_DB_PASSWORD:-flight-local-password}
+    volumes: [flight-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U flight -d flights']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  booking-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: bookings
+      POSTGRES_USER: booking
+      POSTGRES_PASSWORD: ${BOOKING_DB_PASSWORD:-booking-local-password}
+    volumes: [booking-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U booking -d bookings']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  redis-master:
+    image: redis:7.4-alpine
+    entrypoint: [sh, /etc/redis/server.sh]
+    environment:
+      REDIS_HOST: redis-master
+    volumes:
+      - redis-master-data:/data
+      - ./redis/server.sh:/etc/redis/server.sh:ro
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+  redis-replica:
+    image: redis:7.4-alpine
+    entrypoint: [sh, /etc/redis/server.sh]
+    environment:
+      REDIS_HOST: redis-replica
+      REDIS_INITIAL_REPLICA: 'yes'
+    volumes:
+      - redis-replica-data:/data
+      - ./redis/server.sh:/etc/redis/server.sh:ro
+    depends_on:
+      redis-master: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+  sentinel-1:
+    <<: *sentinel
+    environment:
+      SENTINEL_HOST: sentinel-1
+    volumes:
+      - ./redis/sentinel.sh:/etc/redis/sentinel.sh:ro
+      - sentinel-1-data:/data
+  sentinel-2:
+    <<: *sentinel
+    environment:
+      SENTINEL_HOST: sentinel-2
+    volumes:
+      - ./redis/sentinel.sh:/etc/redis/sentinel.sh:ro
+      - sentinel-2-data:/data
+  sentinel-3:
+    <<: *sentinel
+    environment:
+      SENTINEL_HOST: sentinel-3
+    volumes:
+      - ./redis/sentinel.sh:/etc/redis/sentinel.sh:ro
+      - sentinel-3-data:/data
+  flight-service:
+    <<: *service
+    command: [python, -m, app.flight]
+    environment:
+      DATABASE_URL: postgresql://flight:${FLIGHT_DB_PASSWORD:-flight-local-password}@flight-db:5432/flights
+      GRPC_API_KEY: ${GRPC_API_KEY:-local-homework-service-key}
+      REDIS_SENTINELS: sentinel-1:26379,sentinel-2:26379,sentinel-3:26379
+      REDIS_MASTER: flight-master
+      CACHE_TTL: ${CACHE_TTL:-300}
+    depends_on:
+      flight-db: {condition: service_healthy}
+      sentinel-1: {condition: service_healthy}
+      sentinel-2: {condition: service_healthy}
+      sentinel-3: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -m, app.health, flight]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+  booking-service:
+    <<: *service
+    command: [uvicorn, app.booking:app, --host, 0.0.0.0, --port, '8000']
+    ports: ['${BOOKING_PORT:-8003}:8000']
+    environment:
+      DATABASE_URL: postgresql://booking:${BOOKING_DB_PASSWORD:-booking-local-password}@booking-db:5432/bookings
+      FLIGHT_TARGET: flight-service:50051
+      GRPC_API_KEY: ${GRPC_API_KEY:-local-homework-service-key}
+      GRPC_TIMEOUT: ${GRPC_TIMEOUT:-1.5}
+      GRPC_MAX_ATTEMPTS: ${GRPC_MAX_ATTEMPTS:-3}
+      GRPC_BACKOFF: ${GRPC_BACKOFF:-0.1}
+      CB_FAILURE_THRESHOLD: ${CB_FAILURE_THRESHOLD:-5}
+      CB_WINDOW_SECONDS: ${CB_WINDOW_SECONDS:-60}
+      CB_RESET_TIMEOUT: ${CB_RESET_TIMEOUT:-10}
+      SAGA_GRACE_SECONDS: ${SAGA_GRACE_SECONDS:-30}
+      SAGA_INTERVAL: ${SAGA_INTERVAL:-3}
+    depends_on:
+      booking-db: {condition: service_healthy}
+      flight-service: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -m, app.health, booking]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+volumes:
+  flight-data:
+  booking-data:
+  redis-master-data:
+  redis-replica-data:
+  sentinel-1-data:
+  sentinel-2-data:
+  sentinel-3-data:

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Полёт — авиабилеты</title>
+  <link rel="stylesheet" href="/static/style.css"><script src="/static/app.js" defer></script>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="/" aria-label="Полёт, главная"><span class="brand-mark">↗</span> полёт<span class="brand-dot">.</span></a>
+    <div class="sidebar-label">ВАШЕ ПУТЕШЕСТВИЕ</div>
+    <nav aria-label="Основная навигация">
+      <button class="nav-item active" id="nav-search" aria-current="page"><span aria-hidden="true">⌕</span> Поиск рейсов</button>
+      <button class="nav-item" id="nav-bookings"><span aria-hidden="true">▤</span> Бронирования</button>
+    </nav>
+    <div class="sidebar-bottom"><span class="small-label">УЧЕБНЫЙ ПРОЕКТ · HW3</span><p>Flight Booking</p><a href="/docs" target="_blank" rel="noopener">Документация API ↗</a></div>
+  </aside>
+  <main>
+    <header class="topbar"><span>Авиабилеты <span class="muted">/</span> <span id="breadcrumb">Поиск рейсов</span></span><span class="demo-tag">Демо-сервис</span></header>
+    <div class="content">
+      <section id="search-page" aria-labelledby="search-heading">
+        <div class="eyebrow">НОВОЕ ПУТЕШЕСТВИЕ</div>
+        <h1 id="search-heading">Куда отправимся?</h1>
+        <p class="intro">Найдите рейс и забронируйте места в несколько шагов.</p>
+        <form id="search-form" class="search-panel">
+          <label>Откуда <input id="origin" name="origin" value="SVO" maxlength="3" minlength="3" pattern="[A-Za-z]{3}" required autocomplete="off" aria-describedby="iata-help"></label>
+          <button type="button" id="swap" class="swap" aria-label="Поменять направление">⇄</button>
+          <label>Куда <input id="destination" name="destination" value="LED" maxlength="3" minlength="3" pattern="[A-Za-z]{3}" required autocomplete="off"></label>
+          <label>Дата вылета <input id="date" name="date" type="date" value="2026-11-20"></label>
+          <button class="primary search-button" type="submit">Найти рейсы <span aria-hidden="true">→</span></button>
+          <p class="form-hint" id="iata-help">Коды аэропортов: SVO — Шереметьево, VKO — Внуково, LED — Пулково. Без даты — все дни.</p>
+        </form>
+        <div class="demo-note"><span class="note-icon" aria-hidden="true">i</span><div><strong>Маршрут для знакомства с сервисом</strong><p>Москва → Санкт-Петербург · 20 ноября 2026. Данные учебные, оплата не требуется.</p></div><button id="demo-route" type="button" class="text-button">Показать →</button></div>
+        <div class="section-heading"><h2>Доступные рейсы</h2><span id="flight-count" class="muted"></span></div>
+        <div id="search-feedback" class="feedback" role="status" aria-live="polite"></div>
+        <div id="flights" class="card-list"></div>
+      </section>
+      <section id="bookings-page" hidden aria-labelledby="bookings-heading">
+        <div class="eyebrow">ВАШИ ПЛАНЫ</div><h1 id="bookings-heading">Бронирования</h1>
+        <p class="intro">Посмотрите детали поездки или отмените бронирование.</p>
+        <form id="bookings-form" class="lookup-panel"><label>ID пользователя<input id="user-id" value="student-1" required maxlength="128"></label><button class="primary" type="submit">Показать бронирования</button><p class="form-hint">Используйте тот же ID, который указали при бронировании. Это учебный сервис без авторизации.</p></form>
+        <details class="id-search"><summary>Найти бронирование по номеру</summary><form id="booking-id-form"><label>Номер бронирования (UUID)<input id="booking-id" required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></label><button class="secondary" type="submit">Найти</button></form></details>
+        <div class="section-heading"><h2>Ваши билеты</h2><span id="booking-count" class="muted"></span></div>
+        <div id="bookings-feedback" class="feedback" role="status" aria-live="polite"></div><div id="bookings" class="card-list"></div>
+      </section>
+      <footer><span>Полёт · Flight Booking</span><span>Время рейсов указано по UTC · Цены в рублях</span></footer>
+    </div>
+  </main>
+</div>
+<dialog id="flight-dialog" aria-labelledby="flight-title">
+  <div class="dialog-header"><div><div class="eyebrow">ДЕТАЛИ РЕЙСА</div><h2 id="flight-title">Бронирование</h2></div><button type="button" class="icon-button" data-close="flight-dialog" aria-label="Закрыть">×</button></div>
+  <div id="flight-detail"></div>
+  <form id="reserve-form">
+    <div class="form-grid"><label>ID пользователя<input id="reserve-user" required maxlength="128" value="student-1"></label><label>Количество мест<input id="seats" type="number" min="1" max="2147483647" value="1" step="1" required></label><label class="wide">Имя пассажира<input id="passenger" required maxlength="200" autocomplete="name" placeholder="Имя и фамилия"></label><label class="wide">Электронная почта<input id="email" type="email" required autocomplete="email" placeholder="name@example.com"></label></div>
+    <div class="total-row"><span>Итого</span><strong id="total"></strong></div>
+    <div id="reserve-feedback" class="feedback" role="status" aria-live="polite"></div>
+    <button type="submit" class="primary full" id="reserve-submit">Подтвердить бронирование</button><p class="form-hint">Бронирование сохранится только после подтверждения сервера.</p>
+  </form>
+</dialog>
+<dialog id="cancel-dialog" aria-labelledby="cancel-title"><div class="dialog-header"><h2 id="cancel-title">Отменить бронирование?</h2><button type="button" class="icon-button" data-close="cancel-dialog" aria-label="Закрыть">×</button></div><p>Места снова станут доступны другим пассажирам. Отменённое бронирование останется в истории.</p><div id="cancel-feedback" class="feedback" role="status"></div><div class="dialog-actions"><button class="secondary" data-close="cancel-dialog">Оставить</button><button id="confirm-cancel" class="danger">Отменить бронирование</button></div></dialog>
+</body></html>
