@@ -1,0 +1,49 @@
+@startuml
+title A — Failover: missing push ACK, SMS, late ACK race
+hide footbox
+skinparam backgroundColor #FFFFFF
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 210
+participant "Coordinator\n+ Scheduler" as C
+database "PostgreSQL\nledger" as DB
+queue "Kafka + Outbox Relay" as K
+participant "Channel adapter" as W
+participant "Push provider\n+ app" as Push
+participant "SMS-A / SMS-B" as SMS
+participant "Receipt API" as R
+note over C,Push: Notification already accepted; push attempted; no app ACK.
+... absolute push deadline at accepted_at + 2 s ...
+C -> DB: Claim due state using row lock + version
+DB --> C: No delivery evidence; push result UNKNOWN
+C -> DB: Commit reconcile command outbox (bounded deadline)
+K -> W: Reconcile command
+W -> Push: Lookup stable key / provider ID
+Push --> W: No individual delivery proof
+W -> DB: Store UNKNOWN and reconciliation result
+C -> DB: Recheck evidence; create SMS attempt\n+ command outbox atomically
+K -> W: Deliver committed SMS command
+W -> DB: Validate terminal state + attempt; acquire permit
+alt Evidence committed before SMS permit
+  DB --> W: Stop: already delivered
+else No evidence at permit time
+  DB --> W: SMS permit + stable key
+  W -> SMS: Send with stable key
+  alt SMS-A proves request was NOT accepted
+    SMS --> W: Documented pre-accept rejection
+    W -> DB: Record failure
+    C -> DB: Authorize SMS-B route (if still open)
+    K -> W: SMS-B command
+    W -> DB: Check and acquire SMS-B permit
+    W -> SMS: Send through SMS-B (new provider key)
+    SMS --> W: Accepted + provider ID
+  else Accepted by SMS-A
+    SMS --> W: Accepted + provider ID
+  end
+  SMS -> R: Signed device-level delivered DLR
+  R -> DB: Dedupe receipt; DELIVERED + evidence
+  Push -> R: Late authenticated app ACK
+  R -> DB: Append additional evidence; keep DELIVERED
+  note over Push,SMS: Both channels may already have reached the user.\nNo new sends; an in-flight external request cannot be reliably recalled.
+end
+note over W,SMS: Generic 5xx or lost response = UNKNOWN, not proven rejection.\nReconcile using the original key; choose next channel under deadline.
+@enduml

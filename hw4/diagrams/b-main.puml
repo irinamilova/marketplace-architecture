@@ -1,0 +1,50 @@
+@startuml
+title B — Main path: durable workflow and persisted delivery Signal
+hide footbox
+skinparam backgroundColor #FFFFFF
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 210
+participant "Bank service" as Bank
+participant "API + Outbox Relay" as API
+database "Application ledger" as DB
+queue "Kafka" as K
+participant "Workflow Starter" as Starter
+participant "Temporal Server\n+ durable persistence" as T
+participant "Delivery worker\nworkflow role" as W
+participant "Delivery worker\nactivity role" as A
+participant "Push provider" as P
+participant "Customer app" as App
+participant "Receipt API\n+ Signal Relay" as R
+Bank -> API: POST with stable business key
+API -> DB: Commit notification + outbox (sync replica)
+API --> Bank: 202 accepted
+API -> K: Relay committed critical.requested
+K -> Starter: critical.requested
+Starter -> DB: Check notification exists and is not terminal
+Starter -> T: StartWorkflow critical/<notification_id>
+T --> Starter: Persisted / already exists
+Starter -> K: Commit offset
+T -> W: Workflow task: route resolved via activity
+W -> T: Persist timer at accepted_at + 2 s\nand schedule send activity asynchronously
+T -> A: Logical activity task delivery (worker polls)
+A -> DB: Check deadline/evidence; create/reuse attempt; permit
+DB --> A: Same attempt key across retries
+A -> P: Send push (HTTP timeout <=1 s)
+P --> A: Accepted + provider ID
+A -> DB: Record accepted if not terminal
+A -> T: Activity completion
+note over T,W: Workflow waits on activity result, Signal and durable timer.\nACK may arrive before activity completion; timer is already armed.
+P -> App: Deliver notification to app
+App -> R: Authenticated application ACK
+R -> DB: Commit receipt + terminal evidence + Signal outbox
+R --> App: Receipt persisted
+R -> T: Delivery Signal (receipt_id, notification_id)
+T -> W: Workflow task: process deduplicated Signal
+W -> T: Schedule finalize activity
+T -> A: Finalize task
+A -> DB: Idempotently finalize audit / check evidence
+A -> T: Activity result
+T -> W: Resume workflow
+W -> T: Complete workflow DELIVERED
+note over DB,T: Ledger holds delivery truth; Temporal holds execution history.\nOutbox and reconciliation bridge their non-atomic boundary.
+@enduml

@@ -1,0 +1,48 @@
+@startuml
+title B — Failover: durable timer, recovery, SMS and late push ACK
+hide footbox
+skinparam backgroundColor #FFFFFF
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 210
+participant "Temporal Server\n+ durable persistence" as T
+participant "Workflow worker" as W
+participant "Send / reconcile\nactivity workers" as A
+database "Application ledger" as DB
+participant "Push provider\n+ app" as Push
+participant "SMS provider" as SMS
+participant "Receipt API\n+ Signal Relay" as R
+note over T,Push: Push attempted. No individual ACK. Timer stored durably.
+W -> W: Worker process crashes
+... timer deadline survives the restart ...
+T -> W: New worker replays history; push timer fires
+W -> T: Schedule reconcile activity
+T -> A: Reconcile existing push attempt
+A -> Push: Query provider status if supported
+Push --> A: No proof of device delivery
+A -> DB: Record UNKNOWN; recheck durable evidence
+A --> T: Unconfirmed
+T -> W: Workflow resumes; choose SMS fallback
+W -> T: Schedule SMS send activity
+T -> A: Execute with stable attempt identity and deadline
+A -> DB: Transaction: check deadline/evidence; create/reuse SMS attempt\nand acquire send-permit
+alt Push evidence already persisted
+  DB --> A: Already delivered; deny SMS permit
+  A --> T: Delivered without SMS
+  T -> W: Resume workflow
+  W -> T: Complete DELIVERED
+else No evidence yet
+  DB --> A: Permit + stable SMS key
+  A -> SMS: Send using stable provider key
+  SMS --> A: Accepted (not delivery)
+  A -> DB: Persist result; retry keeps same key
+  A --> T: Activity complete
+  SMS -> R: Signed device-level delivered DLR
+  R -> DB: Commit receipt + DELIVERED + Signal outbox
+  R -> T: Retry delivery Signal until persisted
+  T -> W: Process Signal containing committed evidence
+  W -> T: Complete DELIVERED; no more sends
+  Push -> R: Late application ACK
+  R -> DB: Append evidence; no downgrade or new attempt
+  note over Push,SMS: Residual cross-channel duplicate is measured.\nCompleted external delivery cannot be undone.
+end
+@enduml

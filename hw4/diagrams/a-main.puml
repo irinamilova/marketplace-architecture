@@ -1,0 +1,39 @@
+@startuml
+title A — Main path: durable admission, push, application ACK
+hide footbox
+skinparam backgroundColor #FFFFFF
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 210
+participant "Bank service\n+ source outbox" as Bank
+participant "Notification API\n+ Outbox Relay" as API
+database "PostgreSQL\nledger" as DB
+queue "Kafka" as K
+participant "Coordinator\n+ Scheduler" as C
+participant "Push adapter" as W
+participant "Push provider" as P
+participant "Customer app" as App
+participant "Receipt API" as R
+Bank -> API: POST notification (business_key)
+API -> DB: Commit notification + outbox\nunique business_key, sync replica ACK
+DB --> API: notification_id
+API --> Bank: 202 accepted (notification_id)
+API -> K: Publish committed request
+K -> C: critical.requested (may be repeated)
+C -> DB: Inbox dedupe + route + durable next_action_at
+C -> DB: Lock state; create push attempt + command outbox
+API -> K: Relay push command (stable attempt_id)
+K -> W: Send command (at-least-once)
+W -> DB: Validate state/version; acquire send-permit
+DB --> W: Permit + stable provider key
+W -> P: Send push (notification_id; short TTL)
+P --> W: Accepted + provider_message_id
+W -> DB: Record accepted unless already delivered
+note over W,DB: Provider acceptance is not delivery.
+P -> App: Deliver notification to app
+App -> R: Authenticated app ACK (notification_id)
+R -> DB: Transaction: dedupe receipt; DELIVERED + evidence
+DB --> R: Commit
+R --> App: ACK persisted
+C -> DB: Scheduler/reconciler sees terminal state
+note over C,DB: No new send-permits after durable evidence.
+@enduml
