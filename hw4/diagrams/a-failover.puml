@@ -1,49 +1,49 @@
 @startuml
-title A — Failover: missing push ACK, SMS, late ACK race
+title Вариант A — переход с push на SMS
 hide footbox
 skinparam backgroundColor #FFFFFF
 skinparam sequenceMessageAlign center
-skinparam maxMessageSize 210
-participant "Coordinator\n+ Scheduler" as C
-database "PostgreSQL\nledger" as DB
-queue "Kafka + Outbox Relay" as K
-participant "Channel adapter" as W
-participant "Push provider\n+ app" as Push
+skinparam maxMessageSize 190
+participant "Планировщик" as C
+database "БД платформы" as DB
+queue "Kafka / публикатор" as K
+participant "Обработчик" as W
+participant "Push / приложение" as Push
 participant "SMS-A / SMS-B" as SMS
-participant "Receipt API" as R
-note over C,Push: Notification already accepted; push attempted; no app ACK.
-... absolute push deadline at accepted_at + 2 s ...
-C -> DB: Claim due state using row lock + version
-DB --> C: No delivery evidence; push result UNKNOWN
-C -> DB: Commit reconcile command outbox (bounded deadline)
-K -> W: Reconcile command
-W -> Push: Lookup stable key / provider ID
-Push --> W: No individual delivery proof
-W -> DB: Store UNKNOWN and reconciliation result
-C -> DB: Recheck evidence; create SMS attempt\n+ command outbox atomically
-K -> W: Deliver committed SMS command
-W -> DB: Validate terminal state + attempt; acquire permit
-alt Evidence committed before SMS permit
-  DB --> W: Stop: already delivered
-else No evidence at permit time
-  DB --> W: SMS permit + stable key
-  W -> SMS: Send with stable key
-  alt SMS-A proves request was NOT accepted
-    SMS --> W: Documented pre-accept rejection
-    W -> DB: Record failure
-    C -> DB: Authorize SMS-B route (if still open)
-    K -> W: SMS-B command
-    W -> DB: Check and acquire SMS-B permit
-    W -> SMS: Send through SMS-B (new provider key)
-    SMS --> W: Accepted + provider ID
-  else Accepted by SMS-A
-    SMS --> W: Accepted + provider ID
+participant "Приём подтверждений" as R
+note over C,Push: Push отправлен, ACK ещё нет.
+... прошло 2 с от приёма платформой ...
+C -> DB: Проверить срок и версию состояния
+DB --> C: Подтверждения нет
+C -> DB: Команда сверки в outbox
+K -> W: Проверить результат push
+W -> Push: Запросить статус, если доступен
+Push --> W: Доставка не подтверждена
+W -> DB: Сохранить результат сверки
+C -> DB: Атомарно проверить ACK и создать SMS-попытку
+K -> W: SMS-команда
+W -> DB: Проверить состояние и разрешение
+alt ACK уже сохранён
+  DB --> W: Отменить SMS
+else Подтверждения ещё нет
+  DB --> W: Разрешение и ключ попытки
+  W -> SMS: Отправить через SMS-A
+  alt SMS-A доказанно не принял запрос
+    SMS --> W: Отказ до приёма
+    W -> DB: Сохранить отказ
+    C -> DB: Создать SMS-B попытку, если доставка открыта
+    K -> W: SMS-B команда
+    W -> DB: Проверить разрешение
+    W -> SMS: Отправить через SMS-B
+    SMS --> W: Запрос принят
+  else SMS-A принял запрос
+    SMS --> W: ID провайдера
   end
-  SMS -> R: Signed device-level delivered DLR
-  R -> DB: Dedupe receipt; DELIVERED + evidence
-  Push -> R: Late authenticated app ACK
-  R -> DB: Append additional evidence; keep DELIVERED
-  note over Push,SMS: Both channels may already have reached the user.\nNo new sends; an in-flight external request cannot be reliably recalled.
+  SMS -> R: Подлинный DLR о доставке на устройство
+  R -> DB: Подтверждение + DELIVERED
+  Push -> R: Поздний ACK приложения
+  R -> DB: Дополнить историю, сохранить успех
+  note over Push,SMS: Уже ушедшую SMS отозвать нельзя: возможен дубль.
 end
-note over W,SMS: Generic 5xx or lost response = UNKNOWN, not proven rejection.\nReconcile using the original key; choose next channel under deadline.
+note over W,SMS: Таймаут или обычный 5xx — UNKNOWN, нужна сверка.
 @enduml

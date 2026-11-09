@@ -1,39 +1,38 @@
 @startuml
-title A — Main path: durable admission, push, application ACK
+title Вариант A — обычная доставка
 hide footbox
 skinparam backgroundColor #FFFFFF
 skinparam sequenceMessageAlign center
-skinparam maxMessageSize 210
-participant "Bank service\n+ source outbox" as Bank
-participant "Notification API\n+ Outbox Relay" as API
-database "PostgreSQL\nledger" as DB
+skinparam maxMessageSize 190
+participant "Сервис банка" as Bank
+participant "API / публикатор" as API
+database "БД платформы" as DB
 queue "Kafka" as K
-participant "Coordinator\n+ Scheduler" as C
-participant "Push adapter" as W
-participant "Push provider" as P
-participant "Customer app" as App
-participant "Receipt API" as R
-Bank -> API: POST notification (business_key)
-API -> DB: Commit notification + outbox\nunique business_key, sync replica ACK
-DB --> API: notification_id
-API --> Bank: 202 accepted (notification_id)
-API -> K: Publish committed request
-K -> C: critical.requested (may be repeated)
-C -> DB: Inbox dedupe + route + durable next_action_at
-C -> DB: Lock state; create push attempt + command outbox
-API -> K: Relay push command (stable attempt_id)
-K -> W: Send command (at-least-once)
-W -> DB: Validate state/version; acquire send-permit
-DB --> W: Permit + stable provider key
-W -> P: Send push (notification_id; short TTL)
-P --> W: Accepted + provider_message_id
-W -> DB: Record accepted unless already delivered
-note over W,DB: Provider acceptance is not delivery.
-P -> App: Deliver notification to app
-App -> R: Authenticated app ACK (notification_id)
-R -> DB: Transaction: dedupe receipt; DELIVERED + evidence
-DB --> R: Commit
-R --> App: ACK persisted
-C -> DB: Scheduler/reconciler sees terminal state
-note over C,DB: No new send-permits after durable evidence.
+participant "Планировщик" as C
+participant "Обработчик" as W
+participant "Push-провайдер" as P
+participant "Приложение" as App
+participant "Приём ACK" as R
+Bank -> API: Событие с бизнес-ключом
+API -> DB: Уведомление + outbox в одной транзакции
+DB --> API: Запись подтверждена репликой
+API --> Bank: 202 + notification_id
+API -> K: Событие из outbox
+K -> C: Критичное уведомление
+C -> DB: Состояние, попытка и команда в outbox
+API -> K: Опубликовать команду
+K -> W: Отправить push
+W -> DB: Проверить попытку и получить разрешение
+DB --> W: Ключ попытки
+W -> P: Push с notification_id
+P --> W: Запрос принят, ID провайдера
+W -> DB: Сохранить приём запроса
+note over W,DB: Приём запроса ещё не означает доставку.
+P -> App: Доставить сообщение
+App -> R: ACK авторизованного получателя
+R -> DB: Сохранить ACK и DELIVERED
+DB --> R: Транзакция завершена
+R --> App: ACK сохранён
+C -> DB: Проверить конечное состояние
+note over C,DB: Новые отправки запрещены.
 @enduml

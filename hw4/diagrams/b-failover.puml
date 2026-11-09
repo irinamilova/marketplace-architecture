@@ -1,48 +1,48 @@
 @startuml
-title B — Failover: durable timer, recovery, SMS and late push ACK
+title Вариант B — переход с push на SMS
 hide footbox
 skinparam backgroundColor #FFFFFF
 skinparam sequenceMessageAlign center
-skinparam maxMessageSize 210
-participant "Temporal Server\n+ durable persistence" as T
-participant "Workflow worker" as W
-participant "Send / reconcile\nactivity workers" as A
-database "Application ledger" as DB
-participant "Push provider\n+ app" as Push
-participant "SMS provider" as SMS
-participant "Receipt API\n+ Signal Relay" as R
-note over T,Push: Push attempted. No individual ACK. Timer stored durably.
-W -> W: Worker process crashes
-... timer deadline survives the restart ...
-T -> W: New worker replays history; push timer fires
-W -> T: Schedule reconcile activity
-T -> A: Reconcile existing push attempt
-A -> Push: Query provider status if supported
-Push --> A: No proof of device delivery
-A -> DB: Record UNKNOWN; recheck durable evidence
-A --> T: Unconfirmed
-T -> W: Workflow resumes; choose SMS fallback
-W -> T: Schedule SMS send activity
-T -> A: Execute with stable attempt identity and deadline
-A -> DB: Transaction: check deadline/evidence; create/reuse SMS attempt\nand acquire send-permit
-alt Push evidence already persisted
-  DB --> A: Already delivered; deny SMS permit
-  A --> T: Delivered without SMS
-  T -> W: Resume workflow
-  W -> T: Complete DELIVERED
-else No evidence yet
-  DB --> A: Permit + stable SMS key
-  A -> SMS: Send using stable provider key
-  SMS --> A: Accepted (not delivery)
-  A -> DB: Persist result; retry keeps same key
-  A --> T: Activity complete
-  SMS -> R: Signed device-level delivered DLR
-  R -> DB: Commit receipt + DELIVERED + Signal outbox
-  R -> T: Retry delivery Signal until persisted
-  T -> W: Process Signal containing committed evidence
-  W -> T: Complete DELIVERED; no more sends
-  Push -> R: Late application ACK
-  R -> DB: Append evidence; no downgrade or new attempt
-  note over Push,SMS: Residual cross-channel duplicate is measured.\nCompleted external delivery cannot be undone.
+skinparam maxMessageSize 190
+participant "Temporal" as T
+participant "Workflow" as W
+participant "Activity" as A
+database "БД платформы" as DB
+participant "Push / приложение" as Push
+participant "SMS-провайдер" as SMS
+participant "Приём ACK / Signal" as R
+note over T,Push: Push отправлен, ACK нет; таймер сохранён.
+W -> W: Обработчик падает
+... срок таймера наступает после перезапуска ...
+T -> W: Восстановить историю, обработать таймер
+W -> T: Запустить сверку push
+T -> A: Задание сверки
+A -> Push: Проверить статус, если доступен
+Push --> A: Доставка не подтверждена
+A -> DB: Сохранить UNKNOWN и проверить ACK
+A --> T: Подтверждения пока нет
+T -> W: Продолжить workflow
+W -> T: Запустить SMS activity
+T -> A: Задание со сроком и ключом попытки
+A -> DB: Атомарно проверить ACK и выдать разрешение
+alt Push ACK уже сохранён
+  DB --> A: SMS не разрешена
+  A --> T: Доставка уже подтверждена
+  T -> W: Продолжить workflow
+  W -> T: Завершить DELIVERED
+else ACK ещё нет
+  DB --> A: Разрешение и стабильный ключ
+  A -> SMS: Отправить SMS
+  SMS --> A: Запрос принят, это ещё не доставка
+  A -> DB: Сохранить результат
+  A --> T: Activity завершена
+  SMS -> R: Подлинный DLR о доставке на устройство
+  R -> DB: Подтверждение + DELIVERED + Signal outbox
+  R -> T: Повторять Signal до сохранения
+  T -> W: Обработать подтверждение
+  W -> T: Завершить DELIVERED
+  Push -> R: Поздний ACK приложения
+  R -> DB: Дополнить историю, не отменять успех
+  note over Push,SMS: Поздняя доставка обоими каналами остаётся возможной.
 end
 @enduml
