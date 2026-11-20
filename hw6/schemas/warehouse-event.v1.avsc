@@ -1,0 +1,121 @@
+{
+  "type": "record",
+  "name": "WarehouseEvent",
+  "namespace": "warehouse",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": {
+        "type": "string",
+        "logicalType": "uuid"
+      }
+    },
+    {
+      "name": "warehouse_id",
+      "type": "string",
+      "default": "main"
+    },
+    {
+      "name": "event_type",
+      "type": {
+        "type": "enum",
+        "name": "EventType",
+        "symbols": [
+          "PRODUCT_RECEIVED",
+          "PRODUCT_SHIPPED",
+          "PRODUCT_MOVED",
+          "PRODUCT_RESERVED",
+          "PRODUCT_RELEASED",
+          "INVENTORY_COUNTED",
+          "ORDER_CREATED",
+          "ORDER_COMPLETED"
+        ]
+      }
+    },
+    {
+      "name": "timestamp",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    },
+    {
+      "name": "product_id",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    },
+    {
+      "name": "zone_id",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    },
+    {
+      "name": "from_zone_id",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    },
+    {
+      "name": "to_zone_id",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    },
+    {
+      "name": "order_id",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    },
+    {
+      "name": "quantity",
+      "type": "int",
+      "default": 0
+    },
+    {
+      "name": "counted_quantity",
+      "type": [
+        "null",
+        "int"
+      ],
+      "default": null
+    },
+    {
+      "name": "items",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "OrderItem",
+          "fields": [
+            {
+              "name": "product_id",
+              "type": "string"
+            },
+            {
+              "name": "zone_id",
+              "type": "string"
+            },
+            {
+              "name": "quantity",
+              "type": "int"
+            }
+          ]
+        }
+      },
+      "default": []
+    }
+  ]
+}

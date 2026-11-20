@@ -1,0 +1,17 @@
+groups:
+  - name: warehouse
+    rules:
+      - alert: WarehouseConsumerLag
+        expr: max by (partition) (consumer_lag) > 5
+        for: 10s
+        labels:
+          severity: warning
+        annotations:
+          summary: Consumer отстаёт более чем на 5 событий
+      - alert: WarehouseConsumerUnavailable
+        expr: up{job="warehouse-consumer"} == 0
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: Consumer недоступен
